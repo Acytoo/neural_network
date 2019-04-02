@@ -1,0 +1,22 @@
+# ignore .out and .run
+*.out
+*.run
+
+# ignore build folder
+build
+
+# ignore auto backup
+*~
+
+# ignore emacs temporary file
+\#*#
+\#*
+*\#*
+
+# ignore emacs helm-gtags databases
+GTAGS
+GRTAGS
+GPATH
+
+# ignore data
+data
