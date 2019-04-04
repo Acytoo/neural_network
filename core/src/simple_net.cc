@@ -62,7 +62,26 @@ namespace simple_net {
     return 0;
   }
 
-  int Net::Train() {
+  // batch_size = 1 : online learning
+  // online learning now... minist test set(hello world in neural network)
+  int Net::Train(const vector<Mat>& input, const vector<Mat>& target, int batch_size, int epochs) {
+    if (input[0].rows != layers_[0].rows) {
+      cout << "Error input rows != layer[0] rows" << endl;
+      return -1;
+    }
+    time_t start_time = std::time(0);
+    Mat sample;
+    int train_times = 0;
+    while (train_times <= 500) {
+      for (int i=0, stop=input.size(); i != stop; ++i) {
+        target_ = target[i];
+        layers_[0] = input[i];
+        Forward();
+        Backward();
+        ++train_times;
+      }
+    }
+    cout << "train time cost: " << std::time(0) - start_time << endl;
     return 0;
   }
 
@@ -81,13 +100,6 @@ namespace simple_net {
     }
     return 0;
   }
-
-  int Net::Backward() {
-    CalculateLoss();
-    UpdateWeights();
-    return 0;
-  }
-
 
   int Net::Activate(const Mat& product, Mat& layer) {
     switch(activation_function_) {
@@ -114,32 +126,69 @@ namespace simple_net {
       float tmp = product.at<float>(row,0);
       layer.at<float>(row,0) = tmp < 0 ? 0: tmp;
     }
-    cout << "time cost: " << std::time(0) - start_time << endl;
+    // cout << "time cost: " << std::time(0) - start_time << endl;
     return 0;
   }
 
+  int Net::Backward() {
+    CalculateLoss();
+    UpdateWeightsAndBias();
+    return 0;
+  }
 
-  // void cv::pow	(	InputArray 	src,
-  //                   double 	power,
-  //                   OutputArray 	dst
-  //                   )
   int Net::CalculateLoss() {
     output_error_ = target_ - layers_[layer_size_-1];
     Mat error_tmp;
     cv::pow(output_error_, 2.0, error_tmp);
-    Scalar err_sum_tmp = cv::sum(error_tmp);
-    loss_ = err_sum_tmp[0] / layers_[lauer_size_-1].rows;
+    loss_ = cv::sum(error_tmp)[0] / 2; //layers_[layer_size_-1].rows;
+    cout << "loss " << loss_ << endl;
     return 0;
   }
 
-  int Net::UpdateWeights() {
-    CalaulateDelda();
+  // update weights and bias
+  int Net::UpdateWeightsAndBias() {
+    CalculateDelta();
+    for (int i=0, stop=weights_.size(); i != stop; ++i) {
+      weights_[i] += learning_rate_ * (delta_error_[i] * layers_[i].t()); // sequence
+      // cout << "weights size " << weights_[i].size() << endl;
+      bias_[i] += learning_rate_ * delta_error_[i];
+      // cout << "bias size " << bias_[i].size() << endl;
+    }
     return 0;
   }
 
+  // Calculate delta of each layer
   int Net::CalculateDelta() {
     delta_error_.resize(layer_size_-1);
+    for (int i=layer_size_-2; i >= 0; --i) {
+      delta_error_[i].create(layers_[i+1].size(), CV_32FC1); //layers_[i+1].type()
+      Mat tmp = Mat::zeros(layers_[i+1].rows, 1, CV_32FC1); //(layers_[i+1]);
+      Derivative(layers_[i+1], tmp);
 
+      if (i == layer_size_-2) { // output layer delta
+        delta_error_[i] = tmp.mul(output_error_);
+      }
+      else {  // hidden layer delta
+        delta_error_[i] = tmp.mul(weights_[i+1].t() * delta_error_[i+1]);
+      }
+    }
+    return 0;
+  }
+
+  int Net::Derivative(const Mat& layer, Mat& delta_tmp) {
+    switch(activation_function_) {
+    case ActivationFunction::ReLU:
+      for (int row=0, stop = layer.rows; row != stop; ++row) {
+        delta_tmp = 0 < layer.at<float>(row, 0) ? 1 : 0;
+      }
+      break;
+    case ActivationFunction::Sigmoid:
+      cout << "Sigmoid, not support yet" << endl;
+      break;
+    case ActivationFunction::Tanh:
+      cout << "Tanh, not support yet" << endl;
+      break;
+    }
     return 0;
   }
 

@@ -29,9 +29,9 @@ namespace simple_net {
     ActivationFunction activation_function_ = ActivationFunction::ReLU; // default activation function: ReLu
     double loss_;
     Mat target_;
-    Mat output_error_;
+    Mat output_error_;  // no
     double learning_rate_;
-    Mat delta_error_;
+    vector<Mat> delta_error_;
 
     double weight_mean_ = 0.0, weight_stddev_ = 0.1, bias_num_ = 0.05;
 
@@ -41,8 +41,9 @@ namespace simple_net {
     int ReLU(const Mat& product, Mat& layer);   // ReLU activate function
 
     int CalculateLoss(); // Loss function
-    int UpdateWeights();
+    int UpdateWeightsAndBias();
     int CalculateDelta();
+    int Derivative(const Mat& layer, Mat& delta_err);
 
   public:
     Net(vector<int> layer_neuron_numbers,
@@ -51,11 +52,12 @@ namespace simple_net {
         double weight_mean=0.0,
         double weight_stddev=0.1);
 
-    int Train();
+    int Train(const vector<Mat>& input, const vector<Mat>& target, int batch_size=1, int epochs=1);
     int Predict();
     int Forward();
     int Backward();
     // void set_learning_rate(double learning_rate) {learning_rate_ = learning_rate;}
+    int set_target(Mat target) {target_ = target; return 0;}
 
   };
 }
