@@ -8,10 +8,20 @@ FATAL: In-source builds are not allowed.
 endif()
 
 cmake_minimum_required(VERSION 3.13)
-project(neural_network VERSION 0.0.1)
+project(neural_network VERSION 0.0.2)
 
 find_package(OpenCV REQUIRED)
-include_directories(${OpenCV_INCLUDE_DIRS})
+
+if (NOT OpenCV_FOUND)
+  message(FATAL_ERROR "FATAL: OpenCV 3.2.0 is needed")
+endif()
+
+if (NOT "${OpenCV_VERSION}" STREQUAL "3.2.0")
+  message(FATAL_ERROR "FATAL: Only OpenCV 3.2.0 is supported")
+else()
+  include_directories(${OpenCV_INCLUDE_DIRS})
+endif()
+
 
 find_package(OpenMP)
 if (OPENMP_FOUND)
@@ -27,5 +37,5 @@ add_subdirectory(core)
 add_subdirectory(test)
 
 set(TARGET_EXECUTABLE class_test)
-add_executable(${TARGET_EXECUTABLE} test/class_test.cc)
+add_executable(${TARGET_EXECUTABLE} test/class_test2.cc)
 target_link_libraries(${TARGET_EXECUTABLE} PRIVATE ${OpenCV_LIBS} core)
