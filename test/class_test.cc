@@ -55,6 +55,8 @@ int main() {
 
   // test_net.Train({input_0, input_1}, {target_0, target_1});
   test_net.Train({input_0, input_1, input_2, input_3},
-                 {target_0, target_1, target_2, target_3});
+                 {target_0, target_1, target_2, target_3},
+                 2,
+                 40);
   return 0;
 }

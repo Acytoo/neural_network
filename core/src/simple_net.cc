@@ -44,6 +44,7 @@ namespace simple_net {
       cout << "Error init bias" << endl;
       exit(-2);
     }
+
   }
 
   int Net::InitWeights(double mean,  double stddev) {
@@ -62,15 +63,14 @@ namespace simple_net {
     return 0;
   }
 
-  // batch_size = 1 : online learning
   // online learning now... minist test set(hello world in neural network)
-  int Net::Train(const vector<Mat>& input, const vector<Mat>& target, int batch_size, int epochs) {
+  int Net::Train(const vector<Mat>& input, const vector<Mat>& target) {
     if (input[0].rows != layers_[0].rows) {
       cout << "Error input rows != layer[0] rows" << endl;
       return -1;
     }
     time_t start_time = std::time(0);
-    Mat sample;
+    // Mat sample;
     int train_times = 0;
     while (train_times <= 500) {
       for (int i=0, stop=input.size(); i != stop; ++i) {
@@ -84,6 +84,65 @@ namespace simple_net {
     cout << "train time cost: " << std::time(0) - start_time << endl;
     return 0;
   }
+
+
+  // （1）iteration：表示1次迭代（也叫training step），每次迭代更新1次网络结构的参数；
+  // （2）batch-size：1次迭代所使用的样本量；
+  // （3）epoch：1个epoch表示过了1遍训练集中的所有样本。
+
+  // The loss function computes the error for a single training example;
+  // the cost function is the average of the loss funcitons of the entire training set.
+  // ---Andrew Ng
+
+
+  // training
+  int Net::Train(const vector<Mat>& input, const vector<Mat>& target, int batch_size, int epochs) {
+
+    time_t start_time = std::time(0);
+
+    batch_output_error_ = Mat::zeros(target[0].size(), CV_32FC1); // might move to constructor
+    int trainingset_size = input.size();
+
+    if (input[0].rows != layers_[0].rows) {
+      cout << "Error input rows != layer[0] rows" << endl;
+      return -1;
+    }
+    if (target[0].rows != layers_[layer_size_-1].rows) {
+      cout << "Error target rows != layer[n-1] rows" << endl;
+      return -2;
+    }
+    if (trainingset_size != target.size()) {
+      cout << "input.size != target.size" << endl;
+      return -3;
+    }
+
+    int training_iter = 0;
+    while (epochs-- > 0) {
+      // assume training dataset is larger than batch size
+      int iterations = batch_size;
+      while (iterations-- > 0) {
+        target_ = target[training_iter];
+        layers_[0] = input[training_iter];
+        Forward();
+        // cout <<"foreward once" << endl;
+        AccumulateLoss();  // accumulate loss for a batch
+        // cout << "accumulate once" << endl;
+        ++training_iter;
+        if (training_iter == trainingset_size) {
+          training_iter = 0;
+          break; // finish a epoch, should print something
+        }
+      }
+      BatchBackPropagation(); // Backward after a barch training
+      ShowAccuAndLoss(); // Show current accuracy and loss
+      batch_output_error_ = Mat::zeros(target[0].size(), CV_32FC1);
+    }
+
+    cout << "train time cost: " << std::time(0) - start_time << endl;
+    return 0;
+  }
+
+
 
   int Net::Predict() {
     return 0;
@@ -165,10 +224,10 @@ namespace simple_net {
       Mat tmp = Mat::zeros(layers_[i+1].rows, 1, CV_32FC1); //(layers_[i+1]);
       Derivative(layers_[i+1], tmp);
 
-      if (i == layer_size_-2) { // output layer delta
+      if (i == layer_size_-2) { // output layer delta error
         delta_error_[i] = tmp.mul(output_error_);
       }
-      else {  // hidden layer delta
+      else {  // hidden layer delta error
         delta_error_[i] = tmp.mul(weights_[i+1].t() * delta_error_[i+1]);
       }
     }
@@ -192,5 +251,32 @@ namespace simple_net {
     return 0;
   }
 
+
+  int Net::BatchBackPropagation() {
+    // Backward after a barch training
+    // cout << 1<< endl;
+    output_error_ = batch_output_error_ / batch_size_; //might batch err x 2
+    // cout << 2<< endl;
+    Mat error_tmp;
+    cv::pow(output_error_, 2.0, error_tmp);
+    loss_ = cv::sum(error_tmp)[0] / 2; // cv::sum() return a scalar
+    cout << "loss for a batch " << loss_ << endl;
+    UpdateWeightsAndBias();
+    return 0;
+  }
+
+  int Net::ShowAccuAndLoss() {
+    // Show current accuracy and loss
+    return 0;
+  }
+
+  int Net::AccumulateLoss() {
+    // accumulate loss for a batch
+    // cout << 3 << endl;
+    // cout << batch_output_error_.size() << endl;
+    batch_output_error_ += target_ - layers_[layer_size_-1];
+    // cout << 4 << endl;
+    return 0;
+  }
 
 }
