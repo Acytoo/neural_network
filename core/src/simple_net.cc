@@ -111,6 +111,7 @@ namespace simple_net {
 
     if (input[0].rows != layers_[0].rows) {
       cout << "Error input rows != layer[0] rows" << endl;
+      cout << input[0].size() << " !=  " << layers_[0].size() << endl;
       return -1;
     }
     if (target[0].rows != layers_[layer_size_-1].rows) {

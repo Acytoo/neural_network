@@ -19,4 +19,4 @@ GRTAGS
 GPATH
 
 # ignore data
-data
+data/mnist_png

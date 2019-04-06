@@ -15,7 +15,7 @@ void InitMat(Mat& m,float* num) {
 
 int main() {
   vector<int> layer_neuron_numbers = {2,2, 3, 2};
-  double learning_rate = 4;
+  double learning_rate = 0.4;
   double bias_num = 0.3;
   double weight_mean = 0.0;
   double weight_stddev = 0.1;

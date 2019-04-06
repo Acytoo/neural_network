@@ -39,3 +39,9 @@ add_subdirectory(test)
 set(TARGET_EXECUTABLE class_test)
 add_executable(${TARGET_EXECUTABLE} test/class_test2.cc)
 target_link_libraries(${TARGET_EXECUTABLE} PRIVATE ${OpenCV_LIBS} core)
+
+
+
+set(TARGET_EXECUTABLE mnist_example)
+add_executable(${TARGET_EXECUTABLE} mnist_example/start.cc)
+target_link_libraries(${TARGET_EXECUTABLE} PRIVATE ${OpenCV_LIBS} core)
