@@ -90,13 +90,14 @@ int GetTrainingMat(vector<string>& img_path,
   for (int i=0, stop=img_path.size(); i != stop; ++i) {
     // read image
     Mat tmp = imread(img_path[i], 0);
-    tmp.convertTo(tmp, CV_32FC3, 1.0/255, 0); // convert to 0<tmp<1 float Mat
+    tmp.convertTo(tmp, CV_32FC1, 1.0/255, 0); // convert to 0<tmp<1 float Mat
     // reshape to 784 rows Mat
     tmp = tmp.reshape(1, 784);// cn, rows; cn: number of new channel;
     input.push_back(tmp); // push back
     // store label
     int int_label = stoi(label[i]); // c++11
     Mat mat_label = Mat::zeros(10, 1, CV_32FC1);
+    // cout << int_label << endl;
     mat_label.at<float>(int_label, 0) = 1; // eg: label 2 -> [0;0;1;0;0;0;0;0;0;0]
     target.push_back(mat_label);
   }
@@ -104,6 +105,7 @@ int GetTrainingMat(vector<string>& img_path,
 }
 
 int main() {
+  // get data for training
   vector<string> img_path;
   vector<string> label;
   img_path.reserve(60000); // mnist training set has 60,000 pics
@@ -112,7 +114,8 @@ int main() {
   int err = ReadDataPath(img_path, label, folder_path);
   if (err)
     exit(err);
-  err = ShuffleInputAndTarget(img_path, label);
+  // err = ShuffleInputAndTarget(img_path, label);
+  // err = ShuffleInputAndTarget(img_path, label);
   if (err)
     exit(err);
   vector<Mat> input, target;
@@ -122,23 +125,37 @@ int main() {
 
   // Now let's build THE net !
   cout<< input[0].size() << endl;
-  vector<int> layer_neuron_numbers = {784, 512, 256, 10};
-  double learning_rate = 0.4;
-  double bias_num = 0.5;
+  vector<int> layer_neuron_numbers = {784, 100, 100, 10};
+  double learning_rate = 0.003;
+  double bias_num = 0.0;
   double weight_mean = 0.0;
-  double weight_stddev = 0.1;
+  double weight_stddev = 0.01;
   simple_net::Net mnist_test(layer_neuron_numbers,
                              learning_rate,
                              bias_num,
                              weight_mean,
                              weight_stddev);
 
-  int batch_size = 100, epochs = 1;
+  int batch_size = 500, epochs = 5;
   cout << "start training" << endl;
   mnist_test.Train(input,
                    target,
                    batch_size,
                    epochs);
+
+
+  string file_path = "../data/mnist_png/testing/8/1007.png";
+  Mat predict_img = imread(file_path, 0);
+  imshow("predict img", predict_img);
+  predict_img.convertTo(predict_img, CV_32FC1, 1.0/255, 0);
+  predict_img = predict_img.reshape(1, 784);
+  Mat predict_res;
+  mnist_test.Predict(predict_img, predict_res);
+  cout << predict_res << endl;
+  Point tmp;
+  minMaxLoc(predict_res, NULL, NULL, NULL, &tmp, cv::noArray());
+  cout << "predict result: " << tmp.y <<  endl;
+  waitKey(0);
 
 
   return 0;

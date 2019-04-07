@@ -37,22 +37,25 @@ namespace simple_net {
     bias_.resize(layer_size_ - 1);
     for (int i=0, stop=layer_size_-1; i != stop; ++i) {
       weights_[i].create(layers_[i+1].rows, layers_[i].rows, CV_32FC1);
+      randn(weights_[i], weight_mean_, weight_stddev_);
       bias_[i] = Mat::zeros(layers_[i+1].rows, 1, CV_32FC1);
+      bias_[i] = Scalar(bias_num_);
     }
 
-    int err = InitWeights(weight_mean, weight_stddev);
-    if (err) {
-      cout << "Error init weights"<< endl;
-      exit(-1);
-    }
-    err = InitBias(Scalar(bias_num));
-    if (err) {
-      cout << "Error init bias" << endl;
-      exit(-2);
-    }
+    // int err = InitWeights(weight_mean, weight_stddev);
+    // if (err) {
+    //   cout << "Error init weights"<< endl;
+    //   exit(-1);
+    // }
+    // err = InitBias(Scalar(bias_num));
+    // if (err) {
+    //   cout << "Error init bias" << endl;
+    //   exit(-2);
+    // }
 
   }
 
+  // Deprecated
   int Net::InitWeights(double mean,  double stddev) {
     // cv2.randn(dst, mean, stddev)
     // Gaussian distribution now
@@ -62,6 +65,7 @@ namespace simple_net {
     return 0;
   }
 
+  // Deprecated
   int Net::InitBias(const Scalar& bias) {
     for (int i=0, stop=layer_size_-1; i != stop; ++i) {
       bias_[i] = bias;
@@ -69,7 +73,7 @@ namespace simple_net {
     return 0;
   }
 
-  // online learning now... minist test set(hello world in neural network)
+  // online learning  minist test set(hello world in neural network)
   int Net::Train(const vector<Mat>& input, const vector<Mat>& target) {
     if (input[0].rows != layers_[0].rows) {
       cout << "Error input rows != layer[0] rows" << endl;
@@ -95,11 +99,9 @@ namespace simple_net {
   // （1）iteration：表示1次迭代（也叫training step），每次迭代更新1次网络结构的参数；
   // （2）batch-size：1次迭代所使用的样本量；
   // （3）epoch：1个epoch表示过了1遍训练集中的所有样本。
-
   // The loss function computes the error for a single training example;
   // the cost function is the average of the loss funcitons of the entire training set.
   // ---Andrew Ng
-
 
   // training
   int Net::Train(const vector<Mat>& input, const vector<Mat>& target, int batch_size, int epochs) {
@@ -122,28 +124,30 @@ namespace simple_net {
       cout << "input.size != target.size" << endl;
       return -3;
     }
+    batch_size_ = batch_size;
+    epochs_ = epochs;
 
-    int training_iter = 0;
-    while (epochs > 0) {
-      // assume training dataset is larger than batch size
-      int iterations = batch_size;
-      while (iterations-- > 0) {
-        target_ = target[training_iter];
-        layers_[0] = input[training_iter];
-        Forward();
-        // cout <<"foreward once" << endl;
-        AccumulateLoss();  // accumulate loss for a batch
-        // cout << "accumulate once" << endl;
-        ++training_iter;
-        if (training_iter == trainingset_size) {
-          training_iter = 0;
-          --epochs;
-          break; // finish a epoch, should print something
-        }
+    // assume training dataset is larger than batch size
+    int input_size = input.size();
+    int total_forward_times = epochs * input_size;
+    int forward_times = 0;
+    int trainingset_index = 0;
+    while (forward_times <= total_forward_times) {
+      trainingset_index = forward_times % input_size;
+
+      layers_[0] = input[trainingset_index];
+      target_ = target[trainingset_index];
+      Forward();
+      AccumulateLoss();
+
+      ++forward_times;
+      if (forward_times % batch_size_ == 0) {
+        // one batch
+        BatchBackPropagation(); // Backward after a barch training
+        batch_output_error_ = Mat::zeros(target[0].size(), CV_32FC1); //reset error
+        ShowAccuAndLoss();
       }
-      BatchBackPropagation(); // Backward after a barch training
-      // ShowAccuAndLoss(); // Show current accuracy and loss
-      batch_output_error_ = Mat::zeros(target[0].size(), CV_32FC1); // reset error
+
     }
 
     cout << "train time cost: " << std::time(0) - start_time << endl;
@@ -152,7 +156,16 @@ namespace simple_net {
 
 
 
-  int Net::Predict() {
+  int Net::Predict(Mat& input, Mat& res) {
+    if (input.rows != layers_[0].rows) {
+      cout << "Row of mat for prediction should equals to the row of layers[0]"
+           << endl;
+      return -1;
+    }
+    cout << "---------------------Predict" << endl;
+    layers_[0] = input;
+    Forward();
+    res = layers_[layer_size_-1];
     return 0;
   }
 
@@ -174,10 +187,10 @@ namespace simple_net {
       return ReLU(product, layer);
       break;
     case ActivationFunction::Sigmoid:
-      cout << "Sigmoid, not support yet" << endl;
+      cout << "Sigmoid, not supported yet" << endl;
       break;
     case ActivationFunction::Tanh:
-      cout << "Tanh, not support yet" << endl;
+      cout << "Tanh, not supported yet" << endl;
       break;
     }
     return 0;
@@ -264,10 +277,10 @@ namespace simple_net {
       }
       break;
     case ActivationFunction::Sigmoid:
-      cout << "Sigmoid, not support yet" << endl;
+      cout << "Sigmoid, not supported yet" << endl;
       break;
     case ActivationFunction::Tanh:
-      cout << "Tanh, not support yet" << endl;
+      cout << "Tanh, not supported yet" << endl;
       break;
     }
     return 0;
@@ -285,14 +298,16 @@ namespace simple_net {
     // cout << 2<< endl;
     Mat error_tmp;
     cv::pow(output_error_, 2.0, error_tmp);
+    // cout << "error type(float or double) " << error_tmp.type() << endl; //float
     loss_ = cv::sum(error_tmp)[0] / 2; // cv::sum() return a scalar
-    cout << "loss for a batch " << loss_ << endl << endl << endl;
+    // cout << "loss for a batch " << loss_ << endl;
     UpdateWeightsAndBias();     //
     return 0;
   }
 
   int Net::ShowAccuAndLoss() {
     // Show current accuracy and loss
+    cout << "loss from last batch: " << loss_ << endl;
     return 0;
   }
 

@@ -27,7 +27,7 @@ namespace simple_net {
     vector<Mat> weights_; // weights, Mat
     vector<int> layer_neuron_numbers_; // number of neurons of each layers
     ActivationFunction activation_function_ = ActivationFunction::ReLU; // default activation function: ReLu
-    double loss_;
+    float loss_;
 
     Mat target_;
     Mat output_error_;  // no
@@ -59,14 +59,14 @@ namespace simple_net {
 
     int Train(const vector<Mat>& input, const vector<Mat>& target);
     int Train(const vector<Mat>& input, const vector<Mat>& target, int batch_size, int epochs);
-    int Predict();
+    int Predict(Mat&, Mat&);
     int Forward();
     int Backward();
     // void set_learning_rate(double learning_rate) {learning_rate_ = learning_rate;}
     int AccumulateLoss();  // accumulate loss for a batch
     int BatchBackPropagation(); // Backward after a barch training
     int ShowAccuAndLoss();  // Show current accuracy and loss
-    int set_target(Mat target) {target_ = target; return 0;}
+    int set_target(Mat target) {target_ = target; return 0;} // deprecated
 
 
   };
