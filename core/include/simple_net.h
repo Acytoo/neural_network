@@ -32,7 +32,7 @@ namespace simple_net {
     Mat target_;
     Mat output_error_;  // no
     Mat batch_output_error_; // accumulated error in one batch
-    double learning_rate_;
+    double learning_rate_ = 0.003;
     vector<Mat> delta_error_;
 
     int batch_size_; // batch size
@@ -52,7 +52,7 @@ namespace simple_net {
 
   public:
     Net(vector<int> layer_neuron_numbers,
-        double learning_rate=0.3,
+        double learning_rate=0.003,
         double bias_num=0.05,
         double weight_mean=0.0,
         double weight_stddev=0.1);

@@ -1,7 +1,7 @@
 #include <iostream>
 #include <random>
 #include <string>
-// #include <algorithm>
+#include <algorithm>
 
 #include <stdarg.h>
 #include <sys/stat.h>
@@ -115,9 +115,11 @@ int main() {
   if (err)
     exit(err);
   // err = ShuffleInputAndTarget(img_path, label);
-  // err = ShuffleInputAndTarget(img_path, label);
+  err = ShuffleInputAndTarget(img_path, label);
   if (err)
     exit(err);
+  // vector<string> img_path_part(img_path.begin(), img_path.begin() + 1000),
+  //   label_part(label.begin(), label.begin() + 1000);
   vector<Mat> input, target;
   input.reserve(60000);
   target.reserve(60000);
@@ -125,7 +127,7 @@ int main() {
 
   // Now let's build THE net !
   cout<< input[0].size() << endl;
-  vector<int> layer_neuron_numbers = {784, 100, 100, 10};
+  vector<int> layer_neuron_numbers = {784, 512, 256, 10};
   double learning_rate = 0.003;
   double bias_num = 0.0;
   double weight_mean = 0.0;
@@ -136,15 +138,16 @@ int main() {
                              weight_mean,
                              weight_stddev);
 
-  int batch_size = 500, epochs = 5;
+  int batch_size = 1000, epochs = 5;
   cout << "start training" << endl;
-  mnist_test.Train(input,
-                   target,
-                   batch_size,
-                   epochs);
+  // mnist_test.Train(input,
+  //                  target,
+  //                  batch_size,
+  //                  epochs);
+  mnist_test.Train(input, target);
 
 
-  string file_path = "../data/mnist_png/testing/8/1007.png";
+  string file_path = "../data/mnist_png/testing/2/1036.png";
   Mat predict_img = imread(file_path, 0);
   imshow("predict img", predict_img);
   predict_img.convertTo(predict_img, CV_32FC1, 1.0/255, 0);

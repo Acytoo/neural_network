@@ -82,14 +82,16 @@ namespace simple_net {
     time_t start_time = std::time(0);
     // Mat sample;
     int train_times = 0;
-    while (train_times <= 500) {
+    while (train_times <= 5) {
       for (int i=0, stop=input.size(); i != stop; ++i) {
         target_ = target[i];
         layers_[0] = input[i];
         Forward();
         Backward();
+        ShowAccuAndLoss();
         ++train_times;
       }
+      learning_rate_ *= 1.01;
     }
     cout << "train time cost: " << std::time(0) - start_time << endl;
     return 0;
@@ -146,6 +148,7 @@ namespace simple_net {
         BatchBackPropagation(); // Backward after a barch training
         batch_output_error_ = Mat::zeros(target[0].size(), CV_32FC1); //reset error
         ShowAccuAndLoss();
+        learning_rate_ *= 1.01;
       }
 
     }
@@ -202,7 +205,6 @@ namespace simple_net {
     int stop_r = product.rows;
 #pragma omp parallel for
     for (int row=0; row < stop_r; ++row) {
-      // printf("OpenMP, thread index: %d\n", omp_get_thread_num());
       float tmp = product.at<float>(row,0);
       layer.at<float>(row,0) = tmp < 0 ? 0: tmp;
     }
@@ -229,24 +231,8 @@ namespace simple_net {
   int Net::UpdateWeightsAndBias() {
     CalculateDelta();
     for (int i=0, stop=weights_.size(); i != stop; ++i) {
-      // Mat tmp = learning_rate_ * delta_error_[i];
-      // cout << "delta error * learning rate" << endl
-      //      << tmp << endl;
-
-      // sequence
       weights_[i] += learning_rate_ * (delta_error_[i] * layers_[i].t());
-      // cout << "weights size " << weights_[i].size() << endl;
-      // cout << "weights_ " << i << " " << weights_[i] << endl;
-
-      // cout << "bias_before " << i << " " << bias_[i] << endl;
-      // Mat tmp = Mat::zeros(bias_[i].size(), CV_32FC1);
-      // tmp = learning_rate_ * delta_error_[i];
-      // cout << "delta error * learning rate" << endl
-           // << tmp << endl;
       bias_[i] += learning_rate_ * delta_error_[i];
-      // cout << "bias size " << bias_[i].size() << endl;
-      // cout << "bias_after " << i << " " << bias_[i] << endl;
-
     }
     return 0;
   }
@@ -288,20 +274,11 @@ namespace simple_net {
 
 
   int Net::BatchBackPropagation() {
-    // Backward after a barch training
-    // cout << 1<< endl;
     output_error_ = batch_output_error_ / batch_size_; //might batch err x 2
-    // cout << "output error" << endl
-    //      << output_error_ << endl
-    //      << output_error_.size()
-    //      << endl;
-    // cout << 2<< endl;
     Mat error_tmp;
     cv::pow(output_error_, 2.0, error_tmp);
-    // cout << "error type(float or double) " << error_tmp.type() << endl; //float
     loss_ = cv::sum(error_tmp)[0] / 2; // cv::sum() return a scalar
-    // cout << "loss for a batch " << loss_ << endl;
-    UpdateWeightsAndBias();     //
+    UpdateWeightsAndBias();
     return 0;
   }
 
@@ -312,11 +289,7 @@ namespace simple_net {
   }
 
   int Net::AccumulateLoss() {
-    // accumulate loss for a batch
-    // cout << 3 << endl;
-    // cout << batch_output_error_.size() << endl;
     batch_output_error_ += target_ - layers_[layer_size_-1];
-    // cout << 4 << endl;
     return 0;
   }
 
